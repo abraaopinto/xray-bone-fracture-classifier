@@ -1,0 +1,19 @@
+# venv
+venv/
+.venv/
+
+# python
+__pycache__/
+*.pyc
+
+# data & artifacts
+#data/
+models/
+reports/
+
+# notebooks
+.ipynb_checkpoints/
+
+# OS/IDE
+.vscode/
+.DS_Store
