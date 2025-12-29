@@ -10,3 +10,7 @@ torchvision
 
 streamlit
 tqdm
+
+kagglehub
+pyyaml
+pip-system-certs

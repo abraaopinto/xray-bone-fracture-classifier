@@ -7,9 +7,11 @@ __pycache__/
 *.pyc
 
 # data & artifacts
-#data/
+data/raw/**
+data/processed/**
 models/
 reports/
+
 
 # notebooks
 .ipynb_checkpoints/
@@ -17,3 +19,9 @@ reports/
 # OS/IDE
 .vscode/
 .DS_Store
+
+
+# Pacotes compactados
+*.zip
+*.7z
+*.ra
