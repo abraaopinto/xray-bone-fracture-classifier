@@ -7,7 +7,20 @@ name = "xray-bone-fracture-classifier"
 version = "0.1.0"
 description = "Bone fracture classifier (HBFMID) - training and Streamlit app"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "numpy",
+  "pandas",
+  "matplotlib",
+  "scikit-learn",
+  "pillow",
+  "torch",
+  "torchvision",
+  "streamlit",
+  "tqdm",
+  "kagglehub",
+  "pyyaml",
+  "pip-system-certs",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
