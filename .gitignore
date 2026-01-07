@@ -25,3 +25,6 @@ reports/
 *.zip
 *.7z
 *.ra
+
+# Packaging artifacts
+*.egg-info/
