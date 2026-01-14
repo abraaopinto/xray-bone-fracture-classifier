@@ -66,7 +66,7 @@ def train_model(
 ) -> Tuple[nn.Module, Dict[str, list]]:
     """Train model with early stopping on validation loss."""
     criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay, foreach=False)
 
     best_state = None
     best_val_loss = float("inf")

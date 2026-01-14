@@ -33,6 +33,20 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--prefix", default="run")
     return ap.parse_args()
 
+def resolve_device(device_str: str):
+    device_str = (device_str or "cpu").lower()
+
+    if device_str == "cuda":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if device_str == "cpu":
+        return torch.device("cpu")
+
+    if device_str == "directml":
+        import torch_directml
+        return torch_directml.device()
+
+    raise ValueError(f"Device inválido: {device_str}")
 
 def main() -> None:
     args = parse_args()
@@ -54,7 +68,8 @@ def main() -> None:
 
     set_seed(cfg.seed)
 
-    device = torch.device(cfg.device if cfg.device else ("cuda" if torch.cuda.is_available() else "cpu"))
+    #device = torch.device(cfg.device if cfg.device else ("cuda" if torch.cuda.is_available() else "cpu"))
+    device = resolve_device(cfg.device)
     loaders, spec = build_dataloaders(Path(cfg.data_dir), cfg.img_size, cfg.batch_size, cfg.num_workers)
 
     num_classes = len(spec.class_to_idx)
