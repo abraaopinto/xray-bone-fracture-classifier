@@ -13,6 +13,8 @@ from torchvision import transforms
 from PIL import Image
 
 from ..data.dataloaders import IMAGENET_MEAN, IMAGENET_STD
+from xray_bone_fracture_classifier.utils.device import resolve_device
+
 
 
 @dataclass(frozen=True)
@@ -44,7 +46,7 @@ def load_bundle(model_dir: Path, device: str | None = None) -> ModelBundle:
     else:
         model = build_transfer_model(arch=arch, num_classes=num_classes, pretrained=False)
 
-    dev = torch.device(device if device else ("cuda" if torch.cuda.is_available() else "cpu"))
+    dev = resolve_device(device)
     state = torch.load(model_dir / "model.pt", map_location=dev)
     model.load_state_dict(state)
     model.to(dev).eval()
