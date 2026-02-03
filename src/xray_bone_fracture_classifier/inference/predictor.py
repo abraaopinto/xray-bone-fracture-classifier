@@ -47,7 +47,12 @@ def load_bundle(model_dir: Path, device: str | None = None) -> ModelBundle:
         model = build_transfer_model(arch=arch, num_classes=num_classes, pretrained=False)
 
     dev = resolve_device(device)
-    state = torch.load(model_dir / "model.pt", map_location=dev)
+    try:
+        state = torch.load(model_dir / "model.pt", map_location=dev, weights_only=True)
+    except TypeError:
+        # older torch without weights_only
+        state = torch.load(model_dir / "model.pt", map_location=dev)
+
     model.load_state_dict(state)
     model.to(dev).eval()
 
