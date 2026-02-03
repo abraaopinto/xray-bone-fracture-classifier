@@ -49,11 +49,16 @@ def compute_metrics(y_true, y_pred, num_classes: int) -> dict:
 
     return {
         "accuracy": acc,
+        "precision_macro_present": float(rep_present["macro avg"]["precision"]),
+        "recall_macro_present": float(rep_present["macro avg"]["recall"]),
         "f1_macro_present": float(rep_present["macro avg"]["f1-score"]),
+        "precision_macro_all": float(rep_all["macro avg"]["precision"]),
+        "recall_macro_all": float(rep_all["macro avg"]["recall"]),
         "f1_macro_all": float(rep_all["macro avg"]["f1-score"]),
         "num_classes_all": num_classes,
         "num_classes_present_in_test": int(len(set(y_true.tolist()))),
     }
+
 
 def compute_reports(
     y_true: np.ndarray,
