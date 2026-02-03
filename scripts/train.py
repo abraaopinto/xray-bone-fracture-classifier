@@ -33,8 +33,19 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--prefix", default="run")
     return ap.parse_args()
 
-def resolve_device(device_str: str):
-    device_str = (device_str or "cpu").lower()
+def resolve_device(device_str: str | None) -> torch.device:
+    """Resolve training device.
+
+    Accepts: auto/None, cpu, cuda, directml (optional).
+    - auto/None: use CUDA if available, else CPU.
+    - cuda: use CUDA if available, else CPU (fallback).
+    - cpu: force CPU.
+    - directml/dml: use DirectML backend (requires optional dependency).
+    """
+    device_str = (device_str or "auto").strip().lower()
+
+    if device_str in {"auto", ""}:
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if device_str == "cuda":
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,11 +53,17 @@ def resolve_device(device_str: str):
     if device_str == "cpu":
         return torch.device("cpu")
 
-    if device_str == "directml":
-        import torch_directml
+    if device_str in {"directml", "dml"}:
+        try:
+            import torch_directml  # type: ignore
+        except ModuleNotFoundError as e:
+            raise RuntimeError(
+                "Device 'directml' requer dependência opcional. Instale com: pip install -e '.[directml]'"
+            ) from e
         return torch_directml.device()
 
     raise ValueError(f"Device inválido: {device_str}")
+
 
 def main() -> None:
     args = parse_args()
