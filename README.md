@@ -1,174 +1,159 @@
 # X-Ray Bone Fracture Classifier
 
-Projeto de **classificação automática de fraturas ósseas em imagens de raio-X** utilizando **Deep Learning (CNN com Transfer Learning)**, com foco em **reprodutibilidade, avaliação rigorosa e interpretabilidade** por meio de **Grad-CAM**, além de uma **aplicação interativa em Streamlit** para inferência.
-
-> ⚠️ **Aviso**: este projeto tem **finalidade educacional e experimental**. Ele **não substitui diagnóstico médico** nem deve ser utilizado para decisões clínicas reais.
-
----
-
-## 1. Objetivo do Projeto
-
-Desenvolver um pipeline completo de Machine Learning para:
-
-- Explorar e compreender um dataset multimodal de fraturas ósseas em raio-X;
-- Construir e treinar modelos de classificação baseados em CNN e Transfer Learning;
-- Avaliar o desempenho do modelo com métricas apropriadas;
-- Aplicar técnicas de **interpretabilidade (Grad-CAM)** para explicar as decisões do modelo;
-- Disponibilizar uma aplicação simples para inferência em novas imagens.
+Pipeline completo em **Python + PyTorch** para **classificação de fraturas ósseas em radiografias**, incluindo:
+- preparação de dados,
+- treino e avaliação,
+- inferência single-image,
+- explicabilidade via **Grad-CAM**,
+- aplicação interativa em **Streamlit**,
+- testes automatizados e boas práticas de engenharia.
 
 ---
 
-## 2. Estrutura do Repositório
+## 1. Visão Geral
+
+Este projeto implementa um **classificador supervisionado de fraturas ósseas** a partir de imagens de raio-X.
+O foco não é apenas o modelo, mas **todo o ciclo de vida**:
+
+- **Reprodutibilidade** (configs, histórico, artefatos)
+- **Robustez** (validação, erros amigáveis)
+- **Explicabilidade** (Grad-CAM)
+- **Qualidade de código** (lint, testes, CI-ready)
+
+---
+
+## 2. Estrutura do Projeto
 
 ```text
-xray-bone-fracture-classifier/
-├── app/
+.
+├── app/                       # Streamlit app
 │   └── app.py
-├── notebooks/
-│   └── 01_eda.ipynb
-├── scripts/
+├── data/
+│   ├── raw/                   # dados brutos (download)
+│   └── processed/             # dataset preparado para treino
+├── models/
+│   └── run_YYYYMMDD-HHMMSS/    # artefatos de cada treino
+│       ├── model.pt
+│       ├── config.json
+│       ├── labels.json
+│       ├── train_history.csv
+│       └── train_summary.json
+├── reports/
+│   └── app_runs/              # saídas do app (predições)
+├── scripts/                   # CLIs do pipeline
 │   ├── download_hbfmid.py
-│   ├── inspect_hbfmid.py
 │   ├── make_classification_dataset.py
 │   ├── train.py
 │   ├── evaluate.py
-│   ├── predict.py
-│   └── compare_runs.py
+│   └── predict.py
 ├── src/
 │   └── xray_bone_fracture_classifier/
 │       ├── data/
+│       ├── models/
 │       ├── training/
-│       ├── evaluation/
 │       ├── inference/
-│       └── interpretability/
-│           └── gradcam.py
+│       ├── evaluation/
+│       ├── interpretability/
+│       └── utils/
+├── tests/                     # testes automatizados
 ├── pyproject.toml
-└── .gitignore
+└── README.md
 ```
 
 ---
 
-## 3. Requisitos
+## 3. Instalação
 
-- Python >= 3.10
-- Sistema operacional: Windows, Linux ou macOS
-- GPU opcional
-
----
-
-## 4. Instalação
+### 3.1 Criar ambiente virtual
 
 ```bash
-git clone https://github.com/abraaopinto/xray-bone-fracture-classifier.git
-cd xray-bone-fracture-classifier
-pip install -e .
+python -m venv venv
+source venv/bin/activate      # Linux/Mac
+venv\Scripts\activate       # Windows
 ```
 
----
-
-## 5. Dataset
-
-Utiliza o **Human Bone Fractures Multi-modal Image Dataset (HBFMID)**.
-
-### Download
+### 3.2 Instalar dependências
 
 ```bash
-python scripts/download_hbfmid.py --output-dir data/raw
+pip install --upgrade pip
+pip install -e ".[dev]"
 ```
 
-### Inspeção
+---
+
+## 4. Pipeline End-to-End (Copy & Paste)
+
+### 4.1 Download do dataset (exemplo)
 
 ```bash
-python scripts/inspect_hbfmid.py --data-dir data/raw/Bone_Fractures_Detection --out-dir reports
+python scripts/download_hbfmid.py --out-dir data/raw
 ```
+
+> Ajuste conforme a origem real do dataset.
 
 ---
 
-## 6. Exploração dos Dados
-
-Notebook:
-
-```text
-notebooks/01_eda.ipynb
-```
-
-Inclui:
-- Visualização por classe
-- Distribuição e desbalanceamento
-- Análise de qualidade das imagens
-
----
-
-## 7. Preparação do Dataset
+### 4.2 Preparar dataset de classificação
 
 ```bash
-python scripts/make_classification_dataset.py --input-dir data/raw/Bone_Fractures_Detection --output-dir data/processed
+python scripts/make_classification_dataset.py \
+  --data-dir data/raw \
+  --out-dir data/processed/hbfmid_cls_bbox \
+  --img-size 224
 ```
 
 ---
 
-## 8. Treinamento
+### 4.3 Treino (smoke test – 1 época)
 
 ```bash
-python scripts/train.py --data-dir data/processed --output-dir runs
+python scripts/train.py \
+  --data-dir data/processed/hbfmid_cls_bbox \
+  --epochs 1 \
+  --batch-size 2 \
+  --num-workers 0
 ```
 
 ---
 
-## 9. Avaliação
+### 4.4 Avaliação
 
 ```bash
-python scripts/evaluate.py --runs-dir runs --output-dir reports
-```
-
-Métricas:
-- Accuracy
-- Precision
-- Recall
-- F1-score
-- Matriz de confusão
-
----
-
-## 10. Interpretabilidade (Grad-CAM)
-
-Implementação disponível em:
-
-```text
-src/xray_bone_fracture_classifier/interpretability/gradcam.py
+python scripts/evaluate.py \
+  --model-dir models/run_YYYYMMDD-HHMMSS \
+  --data-dir data/processed/hbfmid_cls_bbox
 ```
 
 ---
 
-## 11. Inferência via CLI
+### 4.5 Predição single-image (CLI)
 
 ```bash
-python scripts/predict.py --image-path caminho/imagem.png --model-path runs/best_model.pth
+python scripts/predict.py \
+  --model-dir models/run_YYYYMMDD-HHMMSS \
+  --image path/para/xray.png \
+  --topk 3
 ```
 
 ---
 
-## 12. Aplicação Streamlit
+## 5. Aplicação Interativa (Streamlit)
 
 ```bash
 streamlit run app/app.py
 ```
 
-Funcionalidades:
-- Upload de imagem
-- Predição
-- Visualização Grad-CAM
+---
+
+## 6. Testes e Qualidade
+
+```bash
+pytest -q
+ruff check .
+```
 
 ---
 
-## 13. Reprodutibilidade
+## Licença
 
-- Seeds fixadas
-- Dependências versionadas
-- Execução determinística
-
----
-
-## 14. Considerações Finais
-
-O projeto cobre todas as etapas esperadas de um pipeline de Visão Computacional aplicada, atendendo aos critérios de avaliação com foco em clareza, organização e rigor técnico.
+Uso educacional / demonstrativo.
