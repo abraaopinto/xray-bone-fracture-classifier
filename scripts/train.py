@@ -6,6 +6,8 @@ import argparse
 from pathlib import Path
 import pandas as pd
 import torch
+import json
+
 
 from xray_bone_fracture_classifier.config import TrainConfig, make_run_dir, save_config, save_json
 from xray_bone_fracture_classifier.utils.seed import set_seed
@@ -13,6 +15,7 @@ from xray_bone_fracture_classifier.data.dataloaders import build_dataloaders
 from xray_bone_fracture_classifier.models.baseline_cnn import BaselineCNN
 from xray_bone_fracture_classifier.models.transfer import build_transfer_model
 from xray_bone_fracture_classifier.training.engine import train_model
+from xray_bone_fracture_classifier.utils.device import resolve_device
 
 
 def parse_args() -> argparse.Namespace:
@@ -32,38 +35,6 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--models-dir", default="models")
     ap.add_argument("--prefix", default="run")
     return ap.parse_args()
-
-def resolve_device(device_str: str | None) -> torch.device:
-    """Resolve training device.
-
-    Accepts: auto/None, cpu, cuda, directml (optional).
-    - auto/None: use CUDA if available, else CPU.
-    - cuda: use CUDA if available, else CPU (fallback).
-    - cpu: force CPU.
-    - directml/dml: use DirectML backend (requires optional dependency).
-    """
-    device_str = (device_str or "auto").strip().lower()
-
-    if device_str in {"auto", ""}:
-        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    if device_str == "cuda":
-        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    if device_str == "cpu":
-        return torch.device("cpu")
-
-    if device_str in {"directml", "dml"}:
-        try:
-            import torch_directml  # type: ignore
-        except ModuleNotFoundError as e:
-            raise RuntimeError(
-                "Device 'directml' requer dependência opcional. Instale com: pip install -e '.[directml]'"
-            ) from e
-        return torch_directml.device()
-
-    raise ValueError(f"Device inválido: {device_str}")
-
 
 def main() -> None:
     args = parse_args()
@@ -116,6 +87,38 @@ def main() -> None:
     pd.DataFrame(history).to_csv(run_dir / "train_history.csv", index=False)
 
     print("OK. Run saved to:", run_dir)
+
+    hist_df = pd.DataFrame(history)
+
+    def _col(name: str) -> str | None:
+        return name if name in hist_df.columns else None
+
+    # tenta encontrar nomes comuns no histórico
+    val_loss_col = _col("val_loss") or _col("valid_loss") or _col("loss_val")
+    train_loss_col = _col("train_loss") or _col("loss") or _col("train_loss_epoch")
+
+    best_epoch = None
+    best_val_loss = None
+
+    if val_loss_col is not None and len(hist_df) > 0:
+        best_idx = int(hist_df[val_loss_col].astype(float).idxmin())
+        best_epoch = int(hist_df.loc[best_idx].get("epoch", best_idx))
+        best_val_loss = float(hist_df.loc[best_idx][val_loss_col])
+
+    summary = {
+        "best_epoch": best_epoch,
+        "best_val_loss": best_val_loss,
+        "epochs_ran": int(len(hist_df)),
+        "has_val_loss": bool(val_loss_col is not None),
+        "val_loss_col": val_loss_col,
+        "train_loss_col": train_loss_col,
+    }
+
+    (run_dir / "train_summary.json").write_text(
+        json.dumps(summary, indent=2),
+        encoding="utf-8",
+    )
+
 
 
 if __name__ == "__main__":
